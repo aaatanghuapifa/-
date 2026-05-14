@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ドラえもんのどら焼き大冒険 | 像素风贪吃蛇</title>
+    <style>
+        * { user-select: none; -webkit-tap-highlight-color: transparent; image-rendering: pixelated; image-rendering: crisp-edges; }
+        body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; background: url('photo/微信图片_20260412223500_336_2.jpg') no-repeat center center fixed; background-size: cover; font-family: 'Courier New', 'Pixelated MS Sans Serif', 'Monaco', monospace; position: relative; }
+        body::before { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(rgba(0, 255, 0, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 0, 0.03) 1px, transparent 1px); background-size: 20px 20px; pointer-events: none; }
+        #game-container { text-align: center; position: relative; background: #2d2b2a; border-radius: 0px; padding: 20px; box-shadow: 8px 8px 0px #1a1a1a; border: 3px solid #ffd966; display: inline-block; }
+        #game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px; flex-wrap: wrap; background: #1e1b19; padding: 10px 15px; border: 2px solid #ffd966; }
+        .score-panel { background: #0a0a0a; padding: 8px 15px; border: 2px solid #ffd966; color: #ffd966; font-weight: bold; font-size: 12px; text-shadow: 2px 2px 0px #4a2a1a; letter-spacing: 1px; }
+        .score-panel div { margin: 3px 0; }
+        #score, #high-score, #enemy-length, #buff-status { font-size: 14px; }
+        #score span, #high-score span, #enemy-length span, #buff-status span { font-size: 18px; color: #ffaa44; font-weight: bold; }
+        #difficulty-selector { background: #2d2b2a; border: 2px solid #ffd966; color: #ffd966; padding: 6px 12px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; }
+        #enemy-hint-box { position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 20px; width: 240px; background: #1e1b19; border: 3px solid #ffaa44; padding: 12px; color: #ffaa44; font-size: 12px; font-family: 'Courier New', monospace; text-align: center; box-shadow: 4px 4px 0px #4a2a1a; z-index: 10; font-weight: bold; backdrop-filter: blur(2px); }
+        .enemy-tag { position: absolute; background: rgba(0, 0, 0, 0.5); color: #ffaa88; font-size: 9px; padding: 2px 6px; font-family: monospace; white-space: nowrap; border: 1px solid #ffaa44; pointer-events: none; z-index: 20; font-weight: bold; backdrop-filter: blur(2px); opacity: 0.6; }
+        @media (max-width: 1024px) { #enemy-hint-box { position: static; margin: 10px auto; width: 280px; transform: none; } #game-container { display: block; margin: 0 auto; } }
+        #game-board { border: 4px solid #ffd966; background: url('photo/微信图片_20260412224133_337_2.jpg') no-repeat center center; background-size: cover; backdrop-filter: blur(10px); margin: 20px auto; display: block; box-shadow: 6px 6px 0px #0a1a0a; cursor: pointer; image-rendering: crisp-edges; image-rendering: pixelated; filter: contrast(0.7) brightness(0.7); }
+        .controls { margin-top: 20px; }
+        .direction-pad { display: none; grid-template-columns: repeat(3, 70px); gap: 10px; justify-content: center; margin-top: 15px; background: url('photo/微信图片_20260412223500_336_2.jpg') no-repeat center center; background-size: cover; padding: 15px; border-radius: 10px; border: 3px solid #ffd966; }
+        .dir-btn { width: 70px; height: 70px; background: #2d2b2a; border: 3px solid #ffd966; font-size: 28px; color: #ffd966; cursor: pointer; box-shadow: 4px 4px 0px #1a1a1a; transition: all 0.05s linear; font-family: monospace; }
+        .dir-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px #1a1a1a; }
+        @media (max-width: 768px) { .direction-pad { display: grid; } #game-board { width: 90vw; height: 90vw; max-width: 600px; max-height: 600px; } }
+        button { padding: 10px 20px; font-size: 12px; background: #2d2b2a; color: #ffd966; border: 2px solid #ffd966; cursor: pointer; margin: 5px; transition: all 0.05s linear; font-family: 'Courier New', monospace; font-weight: bold; box-shadow: 3px 3px 0px #1a1a1a; }
+        button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px #1a1a1a; }
+        #exit-btn { border-color: #ff8866; color: #ff8866; }
+        #instructions { margin-top: 15px; font-size: 10px; color: #aa9966; font-family: monospace; }
+        #game-over { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 30px; text-align: center; z-index: 100; min-width: 320px; font-family: monospace; border: 4px solid; box-shadow: 8px 8px 0px #0a0a0a; }
+        #game-over.victory { background: #88aaff; border-color: #ffaa44; }
+        #game-over.defeat { background: #4a4a4a; border-color: #ff4444; }
+        #game-over h1 { margin: 0 0 15px 0; font-size: 24px; }
+        .victory h1 { color: #ffaa44; text-shadow: 2px 2px 0px #4466aa; }
+        .defeat h1 { color: #ff4444; text-shadow: 2px 2px 0px #2a2a2a; }
+        .doraemon-face { font-size: 48px; margin: 15px 0; letter-spacing: 8px; }
+        .victory .doraemon-face { color: #ffdd88; }
+        .defeat .doraemon-face { color: #cccccc; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 99; }
+        .volume-btn { background: #2d2b2a; width: 40px; height: 40px; font-size: 18px; padding: 0; }
+        .game-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .invincible { animation: pulse 0.5s steps(2) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes pixelShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
+        .warning { animation: pixelShake 0.2s steps(2) 3; }
+        #buff-status { background: #2a2a2a; }
+        .escape-hole { animation: pulse 0.8s steps(2) infinite; }
+
+        /* 开发者模式模态框 */
+        .dev-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            max-width: 90vw;
+            background: #1e1b19;
+            border: 4px solid #ffd966;
+            z-index: 200;
+            padding: 20px;
+            font-family: monospace;
+            color: #ffd966;
+            box-shadow: 8px 8px 0px #0a0a0a;
+        }
+        .dev-modal.active { display: block; }
+        .dev-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ffd966;
+        }
+        .dev-tab {
+            padding: 8px 16px;
+            background: #2d2b2a;
+            cursor: pointer;
+            border: 1px solid #ffd966;
+            border-bottom: none;
+        }
+        .dev-tab.active {
+            background: #ffd966;
+            color: #1e1b19;
+        }
+        .dev-content {
+            display: none;
+            text-align: center;
+        }
+        .dev-content.active {
+            display: block;
+        }
+        .dev-content img {
+            max-width: 100%;
+            border: 2px solid #ffd966;
+            margin: 10px 0;
+        }
+        .dev-content p {
+            font-size: 12px;
+            margin: 8px 0;
+        }
+        .dev-jump-btn {
+            background: #ffaa44;
+            color: #1e1b19;
+            border-color: #1e1b19;
+            margin-top: 15px;
+        }
+        .close-dev {
+            background: #ff8866;
+            margin-top: 20px;
+        }
+        #dev-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 50;
+            background: #2d2b2a;
+            border-color: #ffaa44;
+            color: #ffaa44;
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+    </style>
+</head>
+<body>
+    <button id="dev-btn">🔧 开发者模式</button>
+    <div id="game-container">
+        <div id="game-header">
+            <div class="score-panel"><div>🍩 铜锣烧</div><div id="score"><span>0</span> / <span id="target-display">30</span></div></div>
+            <div class="score-panel"><div>🏆 最高分</div><div id="high-score"><span>0</span></div></div>
+            <div class="score-panel"><div>👾 敌人长度</div><div id="enemy-length"><span>0</span></div></div>
+            <div class="score-panel" id="buff-status"><div>✨ 增益</div><div id="buff-text"><span>---</span></div></div>
+            <select id="difficulty-selector"><option value="easy">🍃 简单</option><option value="normal" selected>⚡ 普通</option><option value="hard">🔥 困难</option><option value="extreme">💀 极难</option></select>
+            <button id="volume-btn" class="volume-btn">🔊</button>
+        </div>
+        <canvas id="game-board" width="600" height="600"></canvas>
+        <div class="controls">
+            <div class="game-buttons"><button id="start-btn">▶ 开始游戏</button><button id="exit-btn">✖ 退出</button></div>
+            <div id="countdown" style="display:none; margin:10px 0; font-size:28px; color:#ffaa44; font-weight:bold;"></div>
+        </div>
+        <div id="enemy-hint-box"><span id="enemy-hint-text">⭐ 第1关：3分→障碍物 | 5分→敌人 | 8分→传送门</span></div>
+        <div id="instructions">▲ ▼ ◀ ▶ 或 WASD 控制哆啦A梦<br>🔵 蓝色：无敌 | 🔴 红色：破墙<br>💀 撞击敌人头部 = 吃掉其所有铜锣烧<br>🚪 30分出现逃生洞<br>🍩 每吃一个普通铜锣烧，速度+20%</div>
+        <div class="direction-pad"><div></div><button class="dir-btn" data-dir="up">▲</button><div></div><button class="dir-btn" data-dir="left">◀</button><button class="dir-btn" data-dir="down">▼</button><button class="dir-btn" data-dir="right">▶</button></div>
+    </div>
+    <div class="overlay" id="overlay"></div>
+    <div id="game-over" class="defeat">
+        <h1 id="game-over-title">游戏结束</h1>
+        <div class="doraemon-face" id="doraemon-face">😢</div>
+        <p>🍩 得分: <span id="final-score">0</span></p>
+        <p>🏆 最高: <span id="final-high">0</span></p>
+        <p>👾 敌人长度: <span id="final-enemy-length">0</span></p>
+        <div class="game-buttons"><button id="restart-btn">🔄 重来</button><button id="close-overlay-btn">✖ 关闭</button></div>
+    </div>
+
+    <!-- 开发者模态框 -->
+    <div id="dev-modal" class="dev-modal">
+        <div class="dev-tabs">
+            <div class="dev-tab" data-tab="1">第1关</div>
+            <div class="dev-tab" data-tab="2">第2关</div>
+            <div class="dev-tab" data-tab="3">第3关</div>
+        </div>
+        <div id="dev-content-1" class="dev-content">
+            <h3>🍃 第1关 - 初始森林</h3>
+            <img id="preview-img-1" src="photo/微信图片_20260412223500_336_2.jpg" alt="第1关背景">
+            <p>⭐ 机制：障碍物(3分) → 敌人(5分) → 传送门(8分)</p>
+            <p>🌞 无黑暗视野，无老鼠 | 🍩 铜锣烧数量: 2</p>
+            <button class="dev-jump-btn" data-level="1">🚀 跳转到第1关</button>
+        </div>
+        <div id="dev-content-2" class="dev-content">
+            <h3>🔥 第2关 - 暗黑森林</h3>
+            <img id="preview-img-2" src="photo/微信图片_20260420112731_372_2.jpg" alt="第2关背景">
+            <p>🌑 黑暗视野开启 | 光圈半径5 | 透明度80%</p>
+            <p>🐍 第二个敌人出现 | 🍩 铜锣烧数量: 4</p>
+            <button class="dev-jump-btn" data-level="2">🚀 跳转到第2关</button>
+        </div>
+        <div id="dev-content-3" class="dev-content">
+            <h3>💀 第3关 - 鼠灾深渊</h3>
+            <img id="preview-img-3" src="photo/地穴背景.jpg" alt="第3关背景">
+            <p>🌑 黑暗视野 | 光圈半径5 | 透明度80%</p>
+            <p>🐭 老鼠敌人登场 (弹射运动，吃铜锣烧会增殖，上限5只)</p>
+            <p>🧱 障碍物数量: 7 | 🍩 铜锣烧数量: 8</p>
+            <button class="dev-jump-btn" data-level="3">🚀 跳转到第3关</button>
+        </div>
+        <button class="close-dev">✖ 关闭</button>
+    </div>
+
+    <script type="module">
+        // ---------- 图片预加载 ----------
+        const imageCache = {
+            dorayaki: new Image(),
+            enemyHead: new Image(),
+            snakeHead: new Image(),
+            obstacle: new Image(),
+            obstacle1: new Image(),
+            obstacle2: new Image(),
+            obstacle3: new Image(),
+            rat: new Image(),
+            backgroundLevel1: new Image(),
+            backgroundLevel2: new Image(),
+            backgroundLevel3: new Image(),
+            canvasBgLevel1: new Image(),
+            canvasBgLevel2: new Image(),
+            canvasBgLevel3: new Image()
+        };
+        imageCache.dorayaki.src = 'photo/微信图片_20260412225054_338_2.png';
+        imageCache.enemyHead.src = 'photo/微信图片_20260412232317_340_2.png';
+        imageCache.snakeHead.src = 'photo/微信图片_20260412225622_339_2.png';
+        imageCache.obstacle.src = 'photo/微信图片_20260412234348_341_2.png';
+        imageCache.obstacle1.src = 'photo/障碍物1.jpg';
+        imageCache.obstacle2.src = 'photo/障碍物2.jpg';
+        imageCache.obstacle3.src = 'photo/障碍物3.jpg';
+        imageCache.rat.src = 'photo/微信图片_20260412232317_340_2.png';
+        imageCache.backgroundLevel1.src = 'photo/微信图片_20260412223500_336_2.jpg';
+        imageCache.backgroundLevel2.src = 'photo/微信图片_20260412223500_336_2.jpg';
+        imageCache.backgroundLevel3.src = 'photo/微信图片_20260412223500_336_2.jpg';
+        imageCache.canvasBgLevel1.src = 'photo/微信图片_20260412224133_337_2.jpg';
+        imageCache.canvasBgLevel2.src = 'photo/微信图片_20260420112731_372_2.jpg';
+        imageCache.canvasBgLevel3.src = 'photo/地穴背景.jpg';
+
+        const imagesLoaded = Promise.all([
+            new Promise(resolve => { imageCache.dorayaki.onload = resolve; }),
+            new Promise(resolve => { imageCache.enemyHead.onload = resolve; }),
+            new Promise(resolve => { imageCache.snakeHead.onload = resolve; }),
+            new Promise(resolve => { imageCache.obstacle.onload = resolve; }),
+            new Promise(resolve => { imageCache.obstacle1.onload = resolve; }),
+            new Promise(resolve => { imageCache.obstacle2.onload = resolve; }),
+            new Promise(resolve => { imageCache.obstacle3.onload = resolve; }),
+            new Promise(resolve => { imageCache.rat.onload = resolve; })
+        ]);
+
+        // ---------- 游戏主类 ----------
+        class DorayakiGame {
+            constructor() {
+                this.canvas = document.getElementById('game-board');
+                this.ctx = this.canvas.getContext('2d');
+                this.ctx.imageSmoothingEnabled = false;
+                this.canvas.style.filter = 'contrast(0.9)';
+                this.gridSize = 40;
+                this.tileSize = this.canvas.width / this.gridSize;
+                
+                this.snake = [{x: 20, y: 20}];
+                this.foods = [];          // 普通铜锣烧数组
+                this.direction = {x: 0, y: 0};
+                this.nextDirection = {x: 0, y: 0};
+                this.score = 0;
+                this.speed = 200;
+                this.gameRunning = false;
+                this.allowControl = false;
+                this.animationId = null;
+                this.lastFrameTime = 0;
+                
+                this.obstacles = [];
+                this.obstaclesActive = false;
+                
+                this.blueDorayaki = null;
+                this.redDorayaki = null;
+                this.isInvincible = false;
+                this.invincibleTimer = null;
+                this.canBreakObstacle = false;
+                this.breakTimer = null;
+                
+                this.escapeHole = null;
+                this.portal = null;
+                
+                this.enemy = null;
+                this.enemyBody = [];
+                this.enemyDirection = {x:0,y:0};
+                this.enemyActive = false;
+                this.enemyScore = 0;
+                this.enemyMoveCounter = 0;
+                this.enemy2 = null;
+                this.enemy2Body = [];
+                this.enemy2Direction = {x:0,y:0};
+                this.enemy2Active = false;
+                this.enemy2Score = 0;
+                this.enemy2MoveCounter = 0;
+                
+                this.rats = [];
+                this.maxRats = 5;
+                
+                this.extraFood = null;
+                this.currentEnemySpeed = 0.7;
+                this.baseEnemySpeed = 0.7;
+                this.enemySlowTimer = null;
+                
+                this.initialSpeed = 0;
+                this.enemyInitialSpeed = 0.7;
+                this.enemy2InitialSpeed = 0.7;
+                
+                this.currentLevel = 1;
+                this.levelTransition = false;
+                this.levelThresholds = [8, 18, 30];
+                
+                this.darknessEnabled = false;
+                this.lightRadius = 3.5;
+                
+                this.audioEnabled = true;
+                this.audioContext = null;
+                this.backgroundMusic = null;
+                this.isMusicPlaying = false;
+                
+                this.difficultySettings = {
+                    easy: { baseSpeed: 250, enemyBaseSpeed: 0.5, targetScore: 30 },
+                    normal: { baseSpeed: 200, enemyBaseSpeed: 0.7, targetScore: 30 },
+                    hard: { baseSpeed: 150, enemyBaseSpeed: 0.9, targetScore: 30 },
+                    extreme: { baseSpeed: 100, enemyBaseSpeed: 1.1, targetScore: 30 }
+                };
+                this.currentDifficulty = 'normal';
+                
+                this.highScore = localStorage.getItem('dorayaki_highscore_pixel') || 0;
+                document.getElementById('high-score').querySelector('span').textContent = this.highScore;
+                this.updateDifficultyUI();
+                
+                this.bindEvents();
+                this.initDevMode();
+                this.draw();
+            }
+            
+            // 获取当前关卡应生成的普通铜锣烧数量
+            getFoodCountForLevel() {
+                if (this.currentLevel === 1) return 2;
+                if (this.currentLevel === 2) return 4;
+                if (this.currentLevel === 3) return 8;
+                return 1;
+            }
+            
+            // 生成所有普通食物
+            generateFoods() {
+                const count = this.getFoodCountForLevel();
+                const newFoods = [];
+                for (let i = 0; i < count; i++) {
+                    let valid = false;
+                    let attempts = 0;
+                    let food = null;
+                    while (!valid && attempts < 200) {
+                        const x = Math.floor(Math.random() * this.gridSize);
+                        const y = Math.floor(Math.random() * this.gridSize);
+                        valid = true;
+                        // 检查是否与蛇重叠
+                        for (let seg of this.snake) if (seg.x === x && seg.y === y) valid = false;
+                        // 检查是否与已有食物重叠
+                        for (let f of newFoods) if (f.x === x && f.y === y) valid = false;
+                        if (this.blueDorayaki && this.blueDorayaki.x === x && this.blueDorayaki.y === y) valid = false;
+                        if (this.redDorayaki && this.redDorayaki.x === x && this.redDorayaki.y === y) valid = false;
+                        if (this.extraFood && this.extraFood.x === x && this.extraFood.y === y) valid = false;
+                        if (this.escapeHole && this.escapeHole.x === x && this.escapeHole.y === y) valid = false;
+                        if (this.portal && x >= this.portal.x && x <= this.portal.x+1 && y >= this.portal.y && y <= this.portal.y+1) valid = false;
+                        if (this.checkObstacleCollision(x, y)) valid = false;
+                        if (this.isNearPlayer(x, y)) valid = false;
+                        if (this.enemyActive && this.enemy && this.enemy.x === x && this.enemy.y === y) valid = false;
+                        if (this.enemyActive && this.enemyBody.some(s=>s.x===x && s.y===y)) valid = false;
+                        if (this.enemy2Active && this.enemy2 && this.enemy2.x === x && this.enemy2.y === y) valid = false;
+                        if (this.enemy2Active && this.enemy2Body.some(s=>s.x===x && s.y===y)) valid = false;
+                        for (let r of this.rats) if (Math.floor(r.x) === x && Math.floor(r.y) === y) valid = false;
+                        if (valid) food = {x, y};
+                        attempts++;
+                    }
+                    if (food) newFoods.push(food);
+                }
+                this.foods = newFoods;
+            }
+            
+            // 移除指定位置的食物（玩家吃到）
+            removeFoodAt(x, y) {
+                const index = this.foods.findIndex(f => f.x === x && f.y === y);
+                if (index !== -1) {
+                    this.foods.splice(index, 1);
+                    return true;
+                }
+                return false;
+            }
+            
+            updateDifficultyUI() {
+                const settings = this.difficultySettings[this.currentDifficulty];
+                document.getElementById('target-display').textContent = settings.targetScore;
+                this.baseEnemySpeed = settings.enemyBaseSpeed;
+                if (!this.enemySlowTimer) this.currentEnemySpeed = this.baseEnemySpeed;
+                this.updateEnemyHint();
+            }
+            
+            updateEnemyHint() {
+                const hintSpan = document.getElementById('enemy-hint-text');
+                if (this.enemyActive) {
+                    hintSpan.innerHTML = `⚠️ 敌人已出现！长度:${this.enemyBody.length} ⚠️`;
+                } else if (this.currentLevel === 1 && this.score >= this.levelThresholds[0]) {
+                    hintSpan.innerHTML = `🌀 传送门已开启！进入第2关`;
+                } else if (this.currentLevel === 2 && this.score >= this.levelThresholds[1]) {
+                    hintSpan.innerHTML = `🌀 传送门已开启！进入第3关`;
+                } else if (this.currentLevel === 3 && this.score >= this.levelThresholds[2]) {
+                    hintSpan.innerHTML = `🚪 逃生洞已出现！快逃！`;
+                } else if (this.score >= 5) {
+                    hintSpan.innerHTML = `⚠️ 敌人即将到来！${8 - this.score}分→传送门 ⚠️`;
+                } else if (this.score >= 3) {
+                    if (this.currentLevel === 1) hintSpan.innerHTML = `🚧 障碍物已出现！ ${5 - this.score}分→敌人 | ${this.levelThresholds[0] - this.score}分→第2关`;
+                    else if (this.currentLevel === 2) hintSpan.innerHTML = `🚧 障碍物已出现！ ${this.levelThresholds[1] - this.score}分→第3关`;
+                    else hintSpan.innerHTML = `🚧 障碍物已出现！ ${this.levelThresholds[2] - this.score}分→逃生`;
+                } else {
+                    if (this.currentLevel === 1) hintSpan.innerHTML = `⭐ ${3 - this.score}分→障碍物 | ${5 - this.score}分→敌人 | ${this.levelThresholds[0] - this.score}分→第2关`;
+                    else if (this.currentLevel === 2) hintSpan.innerHTML = `⭐ ${this.levelThresholds[1] - this.score}分→第3关`;
+                    else hintSpan.innerHTML = `⭐ ${this.levelThresholds[2] - this.score}分→逃生`;
+                }
+            }
+            
+            updateBuffDisplay() {
+                const buffSpan = document.getElementById('buff-text').querySelector('span');
+                if (this.isInvincible) {
+                    buffSpan.textContent = '✨ 无敌 ✨';
+                    buffSpan.style.color = '#88ffff';
+                } else if (this.canBreakObstacle) {
+                    buffSpan.textContent = '⚡ 破墙 ⚡';
+                    buffSpan.style.color = '#ff8888';
+                } else {
+                    buffSpan.textContent = '---';
+                    buffSpan.style.color = '#ffaa44';
+                }
+            }
+            
+            updateEnemyLengthDisplay() {
+                document.getElementById('enemy-length').querySelector('span').textContent = this.enemyBody.length;
+            }
+            
+            playBeep(frequency, duration, volume = 0.2) {
+                if (!this.audioEnabled) return;
+                try {
+                    if (!this.audioContext) this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = this.audioContext.createOscillator();
+                    const gain = this.audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.audioContext.destination);
+                    osc.frequency.value = frequency;
+                    gain.gain.value = volume;
+                    osc.type = 'square';
+                    osc.start();
+                    gain.gain.exponentialRampToValueAtTime(0.00001, this.audioContext.currentTime + duration);
+                    osc.stop(this.audioContext.currentTime + duration);
+                } catch(e) {}
+            }
+            playEatSound() { this.playBeep(523.25, 0.12, 0.15); }
+            playEnemySound() { this.playBeep(220, 0.25, 0.2); setTimeout(() => this.playBeep(261.63, 0.25, 0.2), 200); }
+            playEnemyEatSound() { this.playBeep(330, 0.08, 0.2); setTimeout(() => this.playBeep(392, 0.08, 0.2), 80); }
+            playGameOverSound() { this.playBeep(196, 0.4, 0.2); setTimeout(() => this.playBeep(174.61, 0.4, 0.2), 250); }
+            playObstacleSound() { this.playBeep(150, 0.2, 0.25); this.playBeep(120, 0.2, 0.25); }
+            playPowerUpSound() { this.playBeep(659.25, 0.15, 0.25); this.playBeep(783.99, 0.15, 0.25); }
+            playEnemyDeathSound() { this.playBeep(440, 0.2, 0.3); this.playBeep(349.23, 0.2, 0.3); this.playBeep(261.63, 0.3, 0.3); }
+            playVictorySound() { this.playBeep(523.25, 0.2, 0.3); this.playBeep(659.25, 0.2, 0.3); this.playBeep(783.99, 0.2, 0.3); this.playBeep(1046.5, 0.4, 0.3); }
+            playEscapeSound() { this.playBeep(440, 0.1, 0.2); this.playBeep(523.25, 0.1, 0.2); this.playBeep(659.25, 0.2, 0.2); }
+            initBackgroundMusic() {
+                if (!this.backgroundMusic) {
+                    this.backgroundMusic = new Audio('music/桑子; Lucy.me - 哆啦A梦（纯音乐).mp3');
+                    this.backgroundMusic.loop = true;
+                    this.backgroundMusic.volume = 0.15;
+                }
+            }
+            changeBackgroundMusic(level) {
+                let musicSrc;
+                if (level === 1) {
+                    musicSrc = 'music/桑子; Lucy.me - 哆啦A梦（纯音乐).mp3';
+                } else if (level === 2) {
+                    musicSrc = 'music/Jovin - 逆风の小曲 翻盘の小曲.mp3';
+                } else if (level === 3) {
+                    musicSrc = 'music/岩崎琢 - 人形の館.mp3';
+                }
+                if (this.backgroundMusic) {
+                    this.stopBackgroundMusic();
+                    this.backgroundMusic.src = musicSrc;
+                    this.backgroundMusic.loop = true;
+                    this.backgroundMusic.volume = 0.15;
+                } else {
+                    this.backgroundMusic = new Audio(musicSrc);
+                    this.backgroundMusic.loop = true;
+                    this.backgroundMusic.volume = 0.15;
+                }
+            }
+            playBackgroundMusic() {
+                if (this.audioEnabled && this.backgroundMusic && !this.isMusicPlaying) {
+                    this.backgroundMusic.play().catch(e => console.log('音乐播放失败:', e));
+                    this.isMusicPlaying = true;
+                }
+            }
+            stopBackgroundMusic() {
+                if (this.backgroundMusic && this.isMusicPlaying) {
+                    this.backgroundMusic.pause();
+                    this.backgroundMusic.currentTime = 0;
+                    this.isMusicPlaying = false;
+                }
+            }
+            
+            isNearPlayer(x, y) { const head = this.snake[0]; return Math.abs(x - head.x) <= 4 && Math.abs(y - head.y) <= 4; }
+            checkObstacleCollision(x, y) { if (!this.obstaclesActive) return false; for (let obs of this.obstacles) if (x >= obs.x && x < obs.x + obs.width && y >= obs.y && y < obs.y + obs.height) return true; return false; }
+            breakObstacleAt(x, y) { for (let i = 0; i < this.obstacles.length; i++) { const obs = this.obstacles[i]; if (x >= obs.x && x < obs.x + obs.width && y >= obs.y && y < obs.y + obs.height) { this.obstacles.splice(i,1); this.playBeep(400,0.1,0.2); return true; } } return false; }
+            
+            findBestDirection(start, target, excludeBodies = true) {
+                const queue = [{x: start.x, y: start.y, path: []}];
+                const visited = new Set();
+                visited.add(`${start.x},${start.y}`);
+                const dirs = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
+                while(queue.length) {
+                    const cur = queue.shift();
+                    if(cur.x === target.x && cur.y === target.y) return cur.path.length ? cur.path[0] : null;
+                    for(let d of dirs) {
+                        const nx = cur.x + d.x, ny = cur.y + d.y;
+                        if(nx<0 || nx>=this.gridSize || ny<0 || ny>=this.gridSize) continue;
+                        if(visited.has(`${nx},${ny}`)) continue;
+                        if(this.checkObstacleCollision(nx,ny)) continue;
+                        let blocked = false;
+                        for(let seg of this.snake) if(seg.x===nx && seg.y===ny) { blocked=true; break; }
+                        if(blocked) continue;
+                        if(excludeBodies) {
+                            for(let seg of this.enemyBody) if(seg.x===nx && seg.y===ny) { blocked=true; break; }
+                            if(!blocked && this.enemy2Active) for(let seg of this.enemy2Body) if(seg.x===nx && seg.y===ny) { blocked=true; break; }
+                        }
+                        if(blocked) continue;
+                        if(this.portal && nx>=this.portal.x && nx<=this.portal.x+1 && ny>=this.portal.y && ny<=this.portal.y+1) continue;
+                        visited.add(`${nx},${ny}`);
+                        queue.push({x:nx, y:ny, path: [...cur.path, d]});
+                    }
+                }
+                return null;
+            }
+            
+            isInLightArea(enemyPos) {
+                if (!this.darknessEnabled) return false;
+                const head = this.snake[0];
+                const dist = Math.abs(enemyPos.x - head.x) + Math.abs(enemyPos.y - head.y);
+                return dist <= this.lightRadius;
+            }
+            
+            // 老鼠逻辑（只在第三关及以上生效）
+            addRat() {
+                if (this.currentLevel < 3) return;
+                if (this.rats.length >= this.maxRats) return;
+                let valid = false;
+                let rat = { x: 0, y: 0, vx: 0, vy: 0 };
+                let attempts = 0;
+                while (!valid && attempts < 50) {
+                    const x = Math.floor(Math.random() * this.gridSize);
+                    const y = Math.floor(Math.random() * this.gridSize);
+                    valid = true;
+                    for (let seg of this.snake) if (seg.x === x && seg.y === y) valid = false;
+                    for (let f of this.foods) if (f.x === x && f.y === y) valid = false;
+                    if (this.checkObstacleCollision(x, y)) valid = false;
+                    if (this.enemyActive && this.enemy && this.enemy.x === x && this.enemy.y === y) valid = false;
+                    if (this.enemy2Active && this.enemy2 && this.enemy2.x === x && this.enemy2.y === y) valid = false;
+                    for (let r of this.rats) if (Math.floor(r.x) === x && Math.floor(r.y) === y) valid = false;
+                    if (this.isNearPlayer(x, y)) valid = false;
+                    if (valid) {
+                        rat.x = x;
+                        rat.y = y;
+                        const angle = Math.random() * Math.PI * 2;
+                        const spd = 0.4 + Math.random() * 0.3;
+                        rat.vx = Math.cos(angle) * spd;
+                        rat.vy = Math.sin(angle) * spd;
+                        break;
+                    }
+                    attempts++;
+                }
+                if (valid) this.rats.push(rat);
+            }
+            
+            moveRats() {
+                for (let i = 0; i < this.rats.length; i++) {
+                    const rat = this.rats[i];
+                    let newX = rat.x + rat.vx;
+                    let newY = rat.y + rat.vy;
+                    let bounced = false;
+                    // 边界反弹 + 加速度
+                    if (newX < 0) { newX = -newX; rat.vx = -rat.vx * 1.1; bounced = true; }
+                    if (newX >= this.gridSize) { newX = 2 * this.gridSize - newX; rat.vx = -rat.vx * 1.1; bounced = true; }
+                    if (newY < 0) { newY = -newY; rat.vy = -rat.vy * 1.1; bounced = true; }
+                    if (newY >= this.gridSize) { newY = 2 * this.gridSize - newY; rat.vy = -rat.vy * 1.1; bounced = true; }
+                    // 障碍物反弹 + 加速度
+                    if (this.checkObstacleCollision(Math.floor(newX), Math.floor(newY)) ||
+                        this.checkObstacleCollision(Math.floor(newX), Math.floor(rat.y)) ||
+                        this.checkObstacleCollision(Math.floor(rat.x), Math.floor(newY))) {
+                        let tryX = rat.x + rat.vx;
+                        let tryY = rat.y;
+                        if (!this.checkObstacleCollision(Math.floor(tryX), Math.floor(tryY))) {
+                            newX = tryX;
+                            newY = tryY;
+                        } else {
+                            rat.vx = -rat.vx * 1.1;
+                            newX = rat.x + rat.vx;
+                            bounced = true;
+                        }
+                        tryX = rat.x;
+                        tryY = rat.y + rat.vy;
+                        if (!this.checkObstacleCollision(Math.floor(tryX), Math.floor(tryY))) {
+                            newX = tryX;
+                            newY = tryY;
+                        } else {
+                            rat.vy = -rat.vy * 1.1;
+                            newY = rat.y + rat.vy;
+                            bounced = true;
+                        }
+                    }
+                    // 限制最大速度
+                    const maxSpeed = 2.5;
+                    if (Math.abs(rat.vx) > maxSpeed) rat.vx = rat.vx > 0 ? maxSpeed : -maxSpeed;
+                    if (Math.abs(rat.vy) > maxSpeed) rat.vy = rat.vy > 0 ? maxSpeed : -maxSpeed;
+                    
+                    rat.x = newX;
+                    rat.y = newY;
+                    
+                    const ratGridX = Math.floor(rat.x);
+                    const ratGridY = Math.floor(rat.y);
+                    // 老鼠吃食物（仅当第三关及以上）
+                    if (this.currentLevel >= 3) {
+                        // 吃普通铜锣烧
+                        const foodIndex = this.foods.findIndex(f => f.x === ratGridX && f.y === ratGridY);
+                        if (foodIndex !== -1) {
+                            this.foods.splice(foodIndex, 1);
+                            this.playEnemyEatSound();
+                            this.addRat();
+                        }
+                        if (this.extraFood && ratGridX === this.extraFood.x && ratGridY === this.extraFood.y) {
+                            this.generateExtraFood();
+                            this.playEnemyEatSound();
+                            this.addRat();
+                        }
+                        if (this.blueDorayaki && ratGridX === this.blueDorayaki.x && ratGridY === this.blueDorayaki.y) {
+                            this.blueDorayaki = null;
+                            this.playPowerUpSound();
+                            this.addRat();
+                        }
+                        if (this.redDorayaki && ratGridX === this.redDorayaki.x && ratGridY === this.redDorayaki.y) {
+                            this.redDorayaki = null;
+                            this.playPowerUpSound();
+                            this.addRat();
+                        }
+                    }
+                    
+                    // 碰撞玩家
+                    if (ratGridX === this.snake[0].x && ratGridY === this.snake[0].y) {
+                        if (!this.isInvincible) this.gameOver();
+                    }
+                }
+            }
+            
+            moveEnemy() {
+                if (!this.enemyActive || !this.enemy) return;
+                let speedMulti = this.isInLightArea(this.enemy) ? 0.5 : 1;
+                const required = Math.floor(1 / (this.currentEnemySpeed * speedMulti));
+                this.enemyMoveCounter++;
+                if (this.enemyMoveCounter < required) return;
+                this.enemyMoveCounter = 0;
+                const oldHead = {...this.enemy};
+                // 寻找最近的目标（所有食物 + 特殊道具）
+                let targets = [...this.foods];
+                if(this.extraFood) targets.push(this.extraFood);
+                if(this.blueDorayaki) targets.push(this.blueDorayaki);
+                if(this.redDorayaki) targets.push(this.redDorayaki);
+                let target = targets.length ? targets[0] : this.foods[0];
+                let minDist = Infinity;
+                for(let t of targets) {
+                    let d = Math.abs(this.enemy.x - t.x) + Math.abs(this.enemy.y - t.y);
+                    if(d < minDist) { minDist = d; target = t; }
+                }
+                let bestDir = this.findBestDirection(this.enemy, target, true);
+                if(bestDir) { this.enemy.x += bestDir.x; this.enemy.y += bestDir.y; this.enemyDirection = bestDir; }
+                else {
+                    let opts = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
+                    opts = opts.filter(d => { let nx=this.enemy.x+d.x, ny=this.enemy.y+d.y; return nx>=0 && nx<this.gridSize && ny>=0 && ny<this.gridSize && !this.checkObstacleCollision(nx,ny); });
+                    if(opts.length) { let rand = opts[Math.floor(Math.random()*opts.length)]; this.enemy.x += rand.x; this.enemy.y += rand.y; this.enemyDirection = rand; }
+                }
+                if(this.enemyBody.length) { this.enemyBody.unshift(oldHead); if(!this.checkEnemyEatFood()) this.enemyBody.pop(); }
+                else this.checkEnemyEatFood();
+                if(this.snake[0].x === this.enemy.x && this.snake[0].y === this.enemy.y) this.killEnemy();
+            }
+            
+            moveEnemy2() {
+                if (!this.enemy2Active || !this.enemy2) return;
+                let speedMulti = this.isInLightArea(this.enemy2) ? 0.5 : 1;
+                const required = Math.floor(1 / (this.currentEnemySpeed * speedMulti));
+                this.enemy2MoveCounter++;
+                if (this.enemy2MoveCounter < required) return;
+                this.enemy2MoveCounter = 0;
+                const oldHead = {...this.enemy2};
+                let targets = [...this.foods];
+                if(this.extraFood) targets.push(this.extraFood);
+                if(this.blueDorayaki) targets.push(this.blueDorayaki);
+                if(this.redDorayaki) targets.push(this.redDorayaki);
+                let target = targets.length ? targets[0] : this.foods[0];
+                let minDist = Infinity;
+                for(let t of targets) {
+                    let d = Math.abs(this.enemy2.x - t.x) + Math.abs(this.enemy2.y - t.y);
+                    if(d < minDist) { minDist = d; target = t; }
+                }
+                let bestDir = this.findBestDirection(this.enemy2, target, true);
+                if(bestDir) { this.enemy2.x += bestDir.x; this.enemy2.y += bestDir.y; this.enemy2Direction = bestDir; }
+                else {
+                    let opts = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
+                    opts = opts.filter(d => { let nx=this.enemy2.x+d.x, ny=this.enemy2.y+d.y; return nx>=0 && nx<this.gridSize && ny>=0 && ny<this.gridSize && !this.checkObstacleCollision(nx,ny); });
+                    if(opts.length) { let rand = opts[Math.floor(Math.random()*opts.length)]; this.enemy2.x += rand.x; this.enemy2.y += rand.y; this.enemy2Direction = rand; }
+                }
+                if(this.enemy2Body.length) { this.enemy2Body.unshift(oldHead); if(!this.checkEnemy2EatFood()) this.enemy2Body.pop(); }
+                else this.checkEnemy2EatFood();
+                if(this.snake[0].x === this.enemy2.x && this.snake[0].y === this.enemy2.y) this.killEnemy2();
+            }
+            
+            checkEnemyEatFood() {
+                if(!this.enemyActive) return false;
+                let ate = false;
+                // 检查普通食物
+                const foodIndex = this.foods.findIndex(f => f.x === this.enemy.x && f.y === this.enemy.y);
+                if (foodIndex !== -1) {
+                    this.enemyScore++;
+                    ate = true;
+                    this.foods.splice(foodIndex, 1);
+                    if(this.enemyBody.length) this.enemyBody.unshift({...this.enemy});
+                    else this.enemyBody.push({...this.enemy});
+                    this.generateFoods(); // 补充食物数量
+                    this.playEnemyEatSound();
+                    this.updateEnemyLengthDisplay();
+                    // 敌人吃普通食物加速20%，最大到150%
+                    this.currentEnemySpeed = Math.min(this.enemyInitialSpeed * 1.5, this.currentEnemySpeed * 1.25);
+                }
+                if(this.extraFood && this.enemy.x === this.extraFood.x && this.enemy.y === this.extraFood.y) {
+                    this.enemyScore++; ate=true;
+                    if(this.enemyBody.length) this.enemyBody.unshift({...this.enemy});
+                    else this.enemyBody.push({...this.enemy});
+                    this.generateExtraFood();
+                    this.playEnemyEatSound();
+                    this.updateEnemyLengthDisplay();
+                    // 敌人吃额外食物加速20%，最大到150%
+                    this.currentEnemySpeed = Math.min(this.enemyInitialSpeed * 1.5, this.currentEnemySpeed * 1.25);
+                }
+                if(this.blueDorayaki && this.enemy.x === this.blueDorayaki.x && this.enemy.y === this.blueDorayaki.y) {
+                    this.blueDorayaki = null;
+                    if(this.enemySlowTimer) clearTimeout(this.enemySlowTimer);
+                    this.currentEnemySpeed = Math.max(0.3, this.baseEnemySpeed * 0.6);
+                    this.enemySlowTimer = setTimeout(()=>{ this.currentEnemySpeed = this.baseEnemySpeed; this.enemySlowTimer=null; },3000);
+                    this.playPowerUpSound();
+                }
+                if(this.redDorayaki && this.enemy.x === this.redDorayaki.x && this.enemy.y === this.redDorayaki.y) {
+                    this.redDorayaki = null;
+                    if(this.enemySlowTimer) clearTimeout(this.enemySlowTimer);
+                    this.currentEnemySpeed = Math.max(0.2, this.baseEnemySpeed * 0.4);
+                    this.enemySlowTimer = setTimeout(()=>{ this.currentEnemySpeed = this.baseEnemySpeed; this.enemySlowTimer=null; },4000);
+                    this.playPowerUpSound();
+                }
+                // 如果敌人吃掉了食物，需要重新生成以保持数量恒定
+                if (ate && this.foods.length < this.getFoodCountForLevel()) {
+                    this.generateFoods();
+                }
+                return ate;
+            }
+            checkEnemy2EatFood() {
+                if(!this.enemy2Active) return false;
+                let ate = false;
+                const foodIndex = this.foods.findIndex(f => f.x === this.enemy2.x && f.y === this.enemy2.y);
+                if (foodIndex !== -1) {
+                    this.enemy2Score++; ate=true;
+                    this.foods.splice(foodIndex, 1);
+                    if(this.enemy2Body.length) this.enemy2Body.unshift({...this.enemy2});
+                    else this.enemy2Body.push({...this.enemy2});
+                    this.generateFoods();
+                    this.playEnemyEatSound();
+                    // 敌人2吃普通食物加速20%，最大到150%
+                    this.currentEnemySpeed = Math.min(this.enemy2InitialSpeed * 1.5, this.currentEnemySpeed * 1.25);
+                }
+                if(this.extraFood && this.enemy2.x === this.extraFood.x && this.enemy2.y === this.extraFood.y) {
+                    this.enemy2Score++; ate=true;
+                    if(this.enemy2Body.length) this.enemy2Body.unshift({...this.enemy2});
+                    else this.enemy2Body.push({...this.enemy2});
+                    this.generateExtraFood();
+                    this.playEnemyEatSound();
+                    // 敌人2吃额外食物加速20%，最大到150%
+                    this.currentEnemySpeed = Math.min(this.enemy2InitialSpeed * 1.5, this.currentEnemySpeed * 1.25);
+                }
+                if(this.blueDorayaki && this.enemy2.x === this.blueDorayaki.x && this.enemy2.y === this.blueDorayaki.y) {
+                    this.blueDorayaki = null;
+                    if(this.enemySlowTimer) clearTimeout(this.enemySlowTimer);
+                    this.currentEnemySpeed = Math.max(0.3, this.baseEnemySpeed * 0.6);
+                    this.enemySlowTimer = setTimeout(()=>{ this.currentEnemySpeed = this.baseEnemySpeed; this.enemySlowTimer=null; },3000);
+                    this.playPowerUpSound();
+                }
+                if(this.redDorayaki && this.enemy2.x === this.redDorayaki.x && this.enemy2.y === this.redDorayaki.y) {
+                    this.redDorayaki = null;
+                    if(this.enemySlowTimer) clearTimeout(this.enemySlowTimer);
+                    this.currentEnemySpeed = Math.max(0.2, this.baseEnemySpeed * 0.4);
+                    this.enemySlowTimer = setTimeout(()=>{ this.currentEnemySpeed = this.baseEnemySpeed; this.enemySlowTimer=null; },4000);
+                    this.playPowerUpSound();
+                }
+                if (ate && this.foods.length < this.getFoodCountForLevel()) {
+                    this.generateFoods();
+                }
+                return ate;
+            }
+            killEnemy() { if(!this.enemyActive) return; const dropped = this.enemyScore + this.enemyBody.length; for(let i=0;i<dropped;i++) { const tail = this.snake[this.snake.length-1]; this.snake.push({...tail}); } this.score += dropped; document.getElementById('score').querySelector('span').textContent = this.score; this.speed = Math.max(50, this.speed - dropped*2); this.playEnemyDeathSound(); this.enemyActive = false; this.enemy = null; this.enemyBody = []; this.enemyScore = 0; this.extraFood = null; this.updateEnemyLengthDisplay(); this.updateEnemyHint(); }
+            killEnemy2() { if(!this.enemy2Active) return; const dropped = this.enemy2Score + this.enemy2Body.length; for(let i=0;i<dropped;i++) { const tail = this.snake[this.snake.length-1]; this.snake.push({...tail}); } this.score += dropped; document.getElementById('score').querySelector('span').textContent = this.score; this.speed = Math.max(50, this.speed - dropped*2); this.playEnemyDeathSound(); this.enemy2Active = false; this.enemy2 = null; this.enemy2Body = []; this.enemy2Score = 0; this.extraFood = null; }
+            
+            generateExtraFood() {
+                let valid = false;
+                while(!valid) {
+                    this.extraFood = {x: Math.floor(Math.random()*this.gridSize), y: Math.floor(Math.random()*this.gridSize)};
+                    valid = true;
+                    for(let s of this.snake) if(this.extraFood.x===s.x && this.extraFood.y===s.y) valid=false;
+                    if(this.checkObstacleCollision(this.extraFood.x,this.extraFood.y)) valid=false;
+                    if(this.isNearPlayer(this.extraFood.x,this.extraFood.y)) valid=false;
+                    for(let f of this.foods) if(f.x===this.extraFood.x && f.y===this.extraFood.y) valid=false;
+                    if(this.blueDorayaki && this.extraFood.x===this.blueDorayaki.x && this.extraFood.y===this.blueDorayaki.y) valid=false;
+                    if(this.redDorayaki && this.extraFood.x===this.redDorayaki.x && this.extraFood.y===this.redDorayaki.y) valid=false;
+                    if(this.escapeHole && this.extraFood.x===this.escapeHole.x && this.extraFood.y===this.escapeHole.y) valid=false;
+                    if(this.portal && this.extraFood.x>=this.portal.x && this.extraFood.x<=this.portal.x+1 && this.extraFood.y>=this.portal.y && this.extraFood.y<=this.portal.y+1) valid=false;
+                    if(this.enemyActive && ((this.enemy && this.extraFood.x===this.enemy.x && this.extraFood.y===this.enemy.y) || this.enemyBody.some(s=>s.x===this.extraFood.x && s.y===this.extraFood.y))) valid=false;
+                    for(let r of this.rats) if (Math.floor(r.x)===this.extraFood.x && Math.floor(r.y)===this.extraFood.y) valid=false;
+                }
+            }
+            generateSpecialDorayaki() {
+                if(this.score>=30 && !this.blueDorayaki && Math.random()<0.25) {
+                    let valid=false, attempts=0;
+                    while(!valid && attempts<80) {
+                        let x=Math.floor(Math.random()*this.gridSize), y=Math.floor(Math.random()*this.gridSize);
+                        valid=true;
+                        for(let s of this.snake) if(s.x===x && s.y===y) valid=false;
+                        for(let f of this.foods) if(f.x===x && f.y===y) valid=false;
+                        if(this.checkObstacleCollision(x,y)) valid=false;
+                        if(this.isNearPlayer(x,y)) valid=false;
+                        if(this.enemyActive && this.enemy && this.enemy.x===x && this.enemy.y===y) valid=false;
+                        if(this.blueDorayaki) valid=false;
+                        if(this.portal && x>=this.portal.x && x<=this.portal.x+1 && y>=this.portal.y && y<=this.portal.y+1) valid=false;
+                        for(let r of this.rats) if (Math.floor(r.x)===x && Math.floor(r.y)===y) valid=false;
+                        if(valid) this.blueDorayaki={x,y};
+                        attempts++;
+                    }
+                }
+                if(this.score>=30 && !this.redDorayaki && Math.random()<0.25) {
+                    let valid=false, attempts=0;
+                    while(!valid && attempts<80) {
+                        let x=Math.floor(Math.random()*this.gridSize), y=Math.floor(Math.random()*this.gridSize);
+                        valid=true;
+                        for(let s of this.snake) if(s.x===x && s.y===y) valid=false;
+                        for(let f of this.foods) if(f.x===x && f.y===y) valid=false;
+                        if(this.checkObstacleCollision(x,y)) valid=false;
+                        if(this.isNearPlayer(x,y)) valid=false;
+                        if(this.enemyActive && this.enemy && this.enemy.x===x && this.enemy.y===y) valid=false;
+                        if(this.redDorayaki) valid=false;
+                        if(this.portal && x>=this.portal.x && x<=this.portal.x+1 && y>=this.portal.y && y<=this.portal.y+1) valid=false;
+                        for(let r of this.rats) if (Math.floor(r.x)===x && Math.floor(r.y)===y) valid=false;
+                        if(valid) this.redDorayaki={x,y};
+                        attempts++;
+                    }
+                }
+            }
+            
+            generateObstacles() {
+                if(this.obstaclesActive) return;
+                let count = Math.min(3 + Math.floor(this.score/30), 8);
+                // 第三关强制7个
+                if (this.currentLevel === 3) count = 7;
+                let newObs = [];
+                for(let i=0;i<count;i++) {
+                    let valid=false, attempts=0;
+                    while(!valid && attempts<150) {
+                        let w = Math.floor(Math.random()*3)+1, h = Math.floor(Math.random()*3)+1;
+                        let x = Math.floor(Math.random()*(this.gridSize-w)), y = Math.floor(Math.random()*(this.gridSize-h));
+                        valid=true;
+                        for(let f of this.foods) if(f.x>=x && f.x<x+w && f.y>=y && f.y<y+h) valid=false;
+                        if(this.blueDorayaki && this.blueDorayaki.x>=x && this.blueDorayaki.x<x+w && this.blueDorayaki.y>=y && this.blueDorayaki.y<y+h) valid=false;
+                        if(this.redDorayaki && this.redDorayaki.x>=x && this.redDorayaki.x<x+w && this.redDorayaki.y>=y && this.redDorayaki.y<y+h) valid=false;
+                        if(this.extraFood && this.extraFood.x>=x && this.extraFood.x<x+w && this.extraFood.y>=y && this.extraFood.y<y+h) valid=false;
+                        for(let dx=0;dx<w;dx++) for(let dy=0;dy<h;dy++) if(this.isNearPlayer(x+dx, y+dy)) valid=false;
+                        for(let seg of this.snake) if(seg.x>=x && seg.x<x+w && seg.y>=y && seg.y<y+h) valid=false;
+                        for(let obs of newObs) if(!(x+w <= obs.x || x >= obs.x+obs.width || y+h <= obs.y || y >= obs.y+obs.height)) valid=false;
+                        for(let r of this.rats) if (Math.floor(r.x)>=x && Math.floor(r.x)<x+w && Math.floor(r.y)>=y && Math.floor(r.y)<y+h) valid=false;
+                        attempts++;
+                        if(valid) {
+                            let obstacleType = 'obstacle'; // 默认
+                            if (this.currentLevel === 3) {
+                                // 第三关随机选择障碍物类型，比例5:4:1
+                                const rand = Math.random() * 10;
+                                if (rand < 5) obstacleType = 'obstacle1'; // 50%
+                                else if (rand < 9) obstacleType = 'obstacle2'; // 40%
+                                else obstacleType = 'obstacle3'; // 10%
+                            }
+                            newObs.push({x,y,width:w,height:h,type:obstacleType});
+                            break;
+                        }
+                    }
+                }
+                if(newObs.length) {
+                    this.obstacles = newObs;
+                    this.obstaclesActive = true;
+                    this.playObstacleSound();
+                }
+            }
+            refreshObstacles() { this.generateObstacles(); }
+            generatePortal() { if(this.portal) return; let valid=false, attempts=0; while(!valid && attempts<100) { let x=Math.floor(Math.random()*(this.gridSize-1)), y=Math.floor(Math.random()*(this.gridSize-1)); valid=true; for(let seg of this.snake) if(seg.x>=x && seg.x<=x+1 && seg.y>=y && seg.y<=y+1) valid=false; for(let f of this.foods) if(f.x>=x && f.x<=x+1 && f.y>=y && f.y<=y+1) valid=false; if(this.checkObstacleCollision(x,y) || this.checkObstacleCollision(x+1,y) || this.checkObstacleCollision(x,y+1) || this.checkObstacleCollision(x+1,y+1)) valid=false; if(this.blueDorayaki && this.blueDorayaki.x>=x && this.blueDorayaki.x<=x+1 && this.blueDorayaki.y>=y && this.blueDorayaki.y<=y+1) valid=false; if(this.redDorayaki && this.redDorayaki.x>=x && this.redDorayaki.x<=x+1 && this.redDorayaki.y>=y && this.redDorayaki.y<=y+1) valid=false; if(this.escapeHole && this.escapeHole.x>=x && this.escapeHole.x<=x+1 && this.escapeHole.y>=y && this.escapeHole.y<=y+1) valid=false; if(this.enemyActive) { if(this.enemy && this.enemy.x>=x && this.enemy.x<=x+1 && this.enemy.y>=y && this.enemy.y<=y+1) valid=false; for(let seg of this.enemyBody) if(seg.x>=x && seg.x<=x+1 && seg.y>=y && seg.y<=y+1) valid=false; } if(this.isNearPlayer(x,y) || this.isNearPlayer(x+1,y) || this.isNearPlayer(x,y+1) || this.isNearPlayer(x+1,y+1)) valid=false; for(let r of this.rats) if (Math.floor(r.x)>=x && Math.floor(r.x)<=x+1 && Math.floor(r.y)>=y && Math.floor(r.y)<=y+1) valid=false; if(valid) { this.portal = {x,y}; this.playEscapeSound(); break; } attempts++; } }
+            generateEscapeHole() { if(this.escapeHole) return; let valid=false, attempts=0; while(!valid && attempts<100) { let x=Math.floor(Math.random()*this.gridSize), y=Math.floor(Math.random()*this.gridSize); valid=true; for(let seg of this.snake) if(seg.x===x && seg.y===y) valid=false; for(let f of this.foods) if(f.x===x && f.y===y) valid=false; if(this.checkObstacleCollision(x,y)) valid=false; if(this.enemyActive && this.enemy && this.enemy.x===x && this.enemy.y===y) valid=false; if(this.isNearPlayer(x,y)) valid=false; for(let r of this.rats) if (Math.floor(r.x)===x && Math.floor(r.y)===y) valid=false; if(valid) { this.escapeHole = {x,y}; this.playEscapeSound(); break; } attempts++; } }
+            activateEnemy() { let valid=false; while(!valid) { this.enemy = {x: Math.floor(Math.random()*this.gridSize), y: Math.floor(Math.random()*this.gridSize)}; valid=true; for(let seg of this.snake) if(this.enemy.x===seg.x && this.enemy.y===seg.y) valid=false; if(this.checkObstacleCollision(this.enemy.x,this.enemy.y)) valid=false; if(this.isNearPlayer(this.enemy.x,this.enemy.y)) valid=false; for(let f of this.foods) if(f.x===this.enemy.x && f.y===this.enemy.y) valid=false; if(this.blueDorayaki && this.enemy.x===this.blueDorayaki.x && this.enemy.y===this.blueDorayaki.y) valid=false; if(this.redDorayaki && this.enemy.x===this.redDorayaki.x && this.enemy.y===this.redDorayaki.y) valid=false; if(this.escapeHole && this.enemy.x===this.escapeHole.x && this.enemy.y===this.escapeHole.y) valid=false; if(this.portal && this.enemy.x>=this.portal.x && this.enemy.x<=this.portal.x+1 && this.enemy.y>=this.portal.y && this.enemy.y<=this.portal.y+1) valid=false; for(let r of this.rats) if (Math.floor(r.x)===this.enemy.x && Math.floor(r.y)===this.enemy.y) valid=false; } this.enemyDirection = {x:1,y:0}; this.enemyBody = []; this.enemyActive = true; this.enemyInitialSpeed = this.baseEnemySpeed; this.generateExtraFood(); this.playEnemySound(); this.updateEnemyLengthDisplay(); }
+            activateEnemy2() { let valid=false; while(!valid) { this.enemy2 = {x: Math.floor(Math.random()*this.gridSize), y: Math.floor(Math.random()*this.gridSize)}; valid=true; for(let seg of this.snake) if(this.enemy2.x===seg.x && this.enemy2.y===seg.y) valid=false; if(this.checkObstacleCollision(this.enemy2.x,this.enemy2.y)) valid=false; if(this.isNearPlayer(this.enemy2.x,this.enemy2.y)) valid=false; for(let f of this.foods) if(f.x===this.enemy2.x && f.y===this.enemy2.y) valid=false; if(this.enemy && this.enemy2.x===this.enemy.x && this.enemy2.y===this.enemy.y) valid=false; for(let seg of this.enemyBody) if(this.enemy2.x===seg.x && this.enemy2.y===seg.y) valid=false; if(this.blueDorayaki && this.enemy2.x===this.blueDorayaki.x && this.enemy2.y===this.blueDorayaki.y) valid=false; if(this.redDorayaki && this.enemy2.x===this.redDorayaki.x && this.enemy2.y===this.redDorayaki.y) valid=false; if(this.escapeHole && this.enemy2.x===this.escapeHole.x && this.enemy2.y===this.escapeHole.y) valid=false; if(this.portal && this.enemy2.x>=this.portal.x && this.enemy2.x<=this.portal.x+1 && this.enemy2.y>=this.portal.y && this.enemy2.y<=this.portal.y+1) valid=false; for(let r of this.rats) if (Math.floor(r.x)===this.enemy2.x && Math.floor(r.y)===this.enemy2.y) valid=false; } this.enemy2Direction = {x:-1,y:0}; this.enemy2Body = []; this.enemy2Active = true; this.enemy2InitialSpeed = this.baseEnemySpeed; this.generateExtraFood(); this.playEnemySound(); }
+            
+            enterNextLevel() {
+                if(this.levelTransition) return;
+                this.levelTransition = true;
+                if(this.enemyActive) { const newLen = Math.floor(this.enemyBody.length / 2); this.enemyBody = this.enemyBody.slice(0, newLen); this.enemyScore = Math.floor(this.enemyScore / 2); this.updateEnemyLengthDisplay(); }
+                if(this.enemy2Active) { const newLen2 = Math.floor(this.enemy2Body.length / 2); this.enemy2Body = this.enemy2Body.slice(0, newLen2); this.enemy2Score = Math.floor(this.enemy2Score / 2); }
+                // 每关增加20%敌人速度（乘1.2）
+                this.baseEnemySpeed = Math.min(2.5, this.baseEnemySpeed * 1.2);
+                if(!this.enemySlowTimer) this.currentEnemySpeed = this.baseEnemySpeed;
+                this.showLevelTransition(this.currentLevel + 1);
+                this.portal = null;
+                setTimeout(() => {
+                    this.currentLevel++;
+                    this.levelTransition = false;
+                    if(this.currentLevel === 2) {
+                        this.darknessEnabled = true;
+                        this.lightRadius = 7;
+                        this.activateEnemy2();
+                        document.body.style.background = `url('${imageCache.backgroundLevel2.src}') no-repeat center center fixed`;
+                        this.canvas.style.background = `url('${imageCache.canvasBgLevel2.src}') no-repeat center center`;
+                        this.canvas.style.backgroundSize = 'cover';
+                        this.generateFoods(); // 刷新食物数量
+                    } else if(this.currentLevel === 3) {
+                        this.darknessEnabled = true;
+                        this.lightRadius = 5;
+                        document.body.style.background = `url('${imageCache.backgroundLevel3.src}') no-repeat center center fixed`;
+                        this.canvas.style.background = `url('${imageCache.canvasBgLevel3.src}') no-repeat center center`;
+                        this.canvas.style.backgroundSize = 'cover';
+                        this.addRat(); // 第三关开局一只老鼠
+                        this.generateFoods(); // 刷新食物数量
+                        // 第三关强制刷新障碍物为7个
+                        if (this.obstaclesActive) this.generateObstacles();
+                    }
+                    document.body.style.backgroundSize = "cover";
+                    this.playPowerUpSound();
+                    this.changeBackgroundMusic(this.currentLevel);
+                }, 2000);
+            }
+            
+            // 开发者模式：跳关
+            jumpToLevel(level) {
+                if (this.gameRunning) {
+                    this.gameRunning = false;
+                    if (this.animationId) cancelAnimationFrame(this.animationId);
+                }
+                this.initGameStateForJump(level);
+                this.currentLevel = level;
+                if (level === 1) {
+                    this.darknessEnabled = false;
+                    document.body.style.background = `url('${imageCache.backgroundLevel1.src}') no-repeat center center fixed`;
+                    this.canvas.style.background = `url('${imageCache.canvasBgLevel1.src}') no-repeat center center`;
+                    this.canvas.style.backgroundSize = 'cover';
+                    this.enemy2Active = false;
+                    this.enemy2 = null;
+                    this.rats = [];
+                } else if (level === 2) {
+                    this.darknessEnabled = true;
+                    this.lightRadius = 7;
+                    document.body.style.background = `url('${imageCache.backgroundLevel2.src}') no-repeat center center fixed`;
+                    this.canvas.style.background = `url('${imageCache.canvasBgLevel2.src}') no-repeat center center`;
+                    this.canvas.style.backgroundSize = 'cover';
+                    this.activateEnemy2();
+                    this.rats = [];
+                } else if (level === 3) {
+                    this.darknessEnabled = true;
+                    this.lightRadius = 5;
+                    document.body.style.background = `url('${imageCache.backgroundLevel3.src}') no-repeat center center fixed`;
+                    this.canvas.style.background = `url('${imageCache.canvasBgLevel3.src}') no-repeat center center`;
+                    this.canvas.style.backgroundSize = 'cover';
+                    this.activateEnemy2();
+                    this.rats = [];
+                    this.addRat();
+                }
+                document.body.style.backgroundSize = "cover";
+                this.generateFoods(); // 根据当前关卡生成对应数量食物
+                this.gameRunning = true;
+                this.allowControl = true;
+                if (this.animationId) cancelAnimationFrame(this.animationId);
+                this.animationId = requestAnimationFrame(this.gameLoop.bind(this));
+                this.changeBackgroundMusic(level);
+                this.draw();
+            }
+            
+            initGameStateForJump(level) {
+                const settings = this.difficultySettings[this.currentDifficulty];
+                this.snake = [{x:20,y:20}];
+                this.direction = {x:0,y:0};
+                this.nextDirection = {x:0,y:0};
+                this.score = 0;
+                this.speed = settings.baseSpeed;
+                this.enemy = null; this.enemyBody = []; this.enemyActive = false; this.enemyScore=0; this.enemyMoveCounter=0;
+                this.enemy2 = null; this.enemy2Body = []; this.enemy2Active = false; this.enemy2Score=0; this.enemy2MoveCounter=0;
+                this.rats = [];
+                this.extraFood = null;
+                this.obstacles = []; this.obstaclesActive = false;
+                this.blueDorayaki = null; this.redDorayaki = null;
+                this.escapeHole = null; this.portal = null;
+                this.isInvincible = false; this.canBreakObstacle = false;
+                this.lastFrameTime = 0;
+                this.baseEnemySpeed = settings.enemyBaseSpeed;
+                this.currentEnemySpeed = this.baseEnemySpeed;
+                if(this.invincibleTimer) clearTimeout(this.invincibleTimer);
+                if(this.breakTimer) clearTimeout(this.breakTimer);
+                if(this.enemySlowTimer) clearTimeout(this.enemySlowTimer);
+                document.getElementById('score').querySelector('span').textContent = '0';
+                document.getElementById('enemy-length').querySelector('span').textContent = '0';
+                this.updateBuffDisplay();
+                this.updateEnemyHint();
+                this.foods = []; // 清空，后面重新生成
+            }
+            
+            showLevelTransition(level) {
+                const div = document.createElement('div');
+                div.id = 'level-transition';
+                div.style.cssText = `position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:1000; animation:pixelFadeIn 0.2s steps(4) forwards; font-family:monospace;`;
+                const text = document.createElement('div');
+                text.textContent = `第 ${level} 关`;
+                text.style.cssText = `font-size:72px; color:#ffd966; font-weight:bold; text-shadow:4px 4px 0px #4a2a1a; animation:pixelPulse 0.5s steps(2) infinite;`;
+                const sub = document.createElement('div');
+                sub.textContent = '准备就绪！';
+                sub.style.cssText = `font-size:24px; color:#ffaa44; margin-top:20px; animation:pixelBlink 0.3s steps(2) infinite;`;
+                div.appendChild(text); div.appendChild(sub);
+                document.body.appendChild(div);
+                setTimeout(() => { div.style.animation = 'pixelFadeOut 0.2s steps(4) forwards'; setTimeout(()=>div.remove(),200); }, 800);
+            }
+            
+            moveSnake() {
+                if(this.nextDirection.x !==0 || this.nextDirection.y !==0) this.direction = {...this.nextDirection};
+                if(this.direction.x===0 && this.direction.y===0) return true;
+                const head = {x: this.snake[0].x + this.direction.x, y: this.snake[0].y + this.direction.y};
+                if(this.escapeHole && head.x===this.escapeHole.x && head.y===this.escapeHole.y) { this.gameWin(true); return false; }
+                if(this.portal && head.x>=this.portal.x && head.x<=this.portal.x+1 && head.y>=this.portal.y && head.y<=this.portal.y+1) {
+                    if(this.invincibleTimer) clearTimeout(this.invincibleTimer);
+                    this.isInvincible = true;
+                    this.updateBuffDisplay();
+                    this.invincibleTimer = setTimeout(() => {
+                        this.isInvincible = false;
+                        this.updateBuffDisplay();
+                    }, 3000);
+                    this.playPowerUpSound();
+                    if(this.currentLevel < 3) this.enterNextLevel();
+                    else this.gameWin(true);
+                    return false;
+                }
+                if(head.x<0 || head.x>=this.gridSize || head.y<0 || head.y>=this.gridSize) {
+                    if(!this.isInvincible) { this.gameOver(); return false; }
+                    else return true;
+                }
+                if(this.checkObstacleCollision(head.x, head.y)) {
+                    if(this.canBreakObstacle) this.breakObstacleAt(head.x, head.y);
+                    else if(!this.isInvincible) { this.gameOver(); return false; }
+                }
+                if(this.enemyActive && this.enemy && head.x===this.enemy.x && head.y===this.enemy.y) {
+                    if(!this.isInvincible) { this.gameOver(); return false; }
+                    else return true;
+                }
+                if(this.enemyActive && this.enemyBody.some(s=>s.x===head.x && s.y===head.y)) {
+                    if(!this.isInvincible) { this.gameOver(); return false; }
+                    else return true;
+                }
+                if(this.enemy2Active && this.enemy2 && head.x===this.enemy2.x && head.y===this.enemy2.y) {
+                    if(!this.isInvincible) { this.gameOver(); return false; }
+                    else return true;
+                }
+                if(this.enemy2Active && this.enemy2Body.some(s=>s.x===head.x && s.y===head.y)) {
+                    if(!this.isInvincible) { this.gameOver(); return false; }
+                    else return true;
+                }
+                for(let rat of this.rats) {
+                    if (Math.floor(rat.x) === head.x && Math.floor(rat.y) === head.y) {
+                        if(!this.isInvincible) { this.gameOver(); return false; }
+                        else return true;
+                    }
+                }
+                for(let seg of this.snake) if(head.x===seg.x && head.y===seg.y) {
+                    if(!this.isInvincible) { this.gameOver(); return false; }
+                    else return true;
+                }
+                this.snake.unshift(head);
+                let ate = false;
+                // 检查是否吃到普通食物
+                const foodIndex = this.foods.findIndex(f => f.x === head.x && f.y === head.y);
+                if (foodIndex !== -1) {
+                    this.score++;
+                    ate = true;
+                    this.foods.splice(foodIndex, 1);
+                    document.getElementById('score').querySelector('span').textContent = this.score;
+                    this.playEatSound();
+                    // 玩家每吃一个普通铜锣烧，速度增加20%，最大加速到150%（speed最低为初始的2/3）
+                    this.speed = Math.max(this.initialSpeed * (2/3), this.speed * 0.8);
+                    // 补充食物以保持数量恒定
+                    if (this.foods.length < this.getFoodCountForLevel()) {
+                        this.generateFoods();
+                    }
+                    if (this.currentLevel >= 3) this.addRat();
+                    if(this.obstaclesActive) this.refreshObstacles();
+                    if(this.currentLevel===1 && this.score>=this.levelThresholds[0] && !this.portal) this.generatePortal();
+                    else if(this.currentLevel===2 && this.score>=this.levelThresholds[1] && !this.portal) this.generatePortal();
+                    else if(this.currentLevel===3 && this.score>=this.levelThresholds[2] && !this.escapeHole) this.generateEscapeHole();
+                    if(this.score >= this.difficultySettings[this.currentDifficulty].targetScore) { this.gameWin(false); return false; }
+                }
+                if(this.enemyActive && this.extraFood && head.x===this.extraFood.x && head.y===this.extraFood.y) {
+                    this.score++; ate=true;
+                    document.getElementById('score').querySelector('span').textContent = this.score;
+                    this.playEatSound();
+                    // 额外食物也加速20%，最大加速到150%
+                    this.speed = Math.max(this.initialSpeed * (2/3), this.speed * 0.8);
+                    this.generateExtraFood();
+                    if (this.currentLevel >= 3) this.addRat();
+                    if(this.obstaclesActive) this.refreshObstacles();
+                    if(this.currentLevel===1 && this.score>=this.levelThresholds[0] && !this.portal) this.generatePortal();
+                    else if(this.currentLevel===2 && this.score>=this.levelThresholds[1] && !this.portal) this.generatePortal();
+                    if(this.score>=this.difficultySettings[this.currentDifficulty].targetScore) { this.gameWin(false); return false; }
+                }
+                if(this.blueDorayaki && head.x===this.blueDorayaki.x && head.y===this.blueDorayaki.y) {
+                    this.blueDorayaki = null;
+                    if(this.invincibleTimer) clearTimeout(this.invincibleTimer);
+                    this.isInvincible = true; this.updateBuffDisplay();
+                    this.invincibleTimer = setTimeout(()=>{ this.isInvincible=false; this.updateBuffDisplay(); },3000);
+                    this.playPowerUpSound(); ate=true;
+                    if (this.currentLevel >= 3) this.addRat();
+                }
+                if(this.redDorayaki && head.x===this.redDorayaki.x && head.y===this.redDorayaki.y) {
+                    this.redDorayaki = null;
+                    if(this.breakTimer) clearTimeout(this.breakTimer);
+                    this.canBreakObstacle = true; this.updateBuffDisplay();
+                    this.breakTimer = setTimeout(()=>{ this.canBreakObstacle=false; this.updateBuffDisplay(); },3000);
+                    this.playPowerUpSound(); ate=true;
+                    if (this.currentLevel >= 3) this.addRat();
+                }
+                if(!ate) this.snake.pop();
+                this.generateSpecialDorayaki();
+                return true;
+            }
+            
+            update() {
+                if(!this.gameRunning) return;
+                this.updateEnemyHint();
+                this.moveSnake();
+                if(!this.enemyActive && this.score>=5) this.activateEnemy();
+                if(this.enemyActive) this.moveEnemy();
+                if(this.enemy2Active) this.moveEnemy2();
+                this.moveRats();
+            }
+            
+            drawEnemyGlow(x, y) {
+                this.ctx.save();
+                this.ctx.shadowBlur = 0;
+                const radius = this.tileSize * 0.8;
+                const gradient = this.ctx.createRadialGradient(x + this.tileSize/2, y + this.tileSize/2, radius*0.3, x + this.tileSize/2, y + this.tileSize/2, radius);
+                gradient.addColorStop(0, 'rgba(255, 200, 100, 0.2)');
+                gradient.addColorStop(1, 'rgba(255, 200, 100, 0)');
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(x, y, this.tileSize, this.tileSize);
+                this.ctx.restore();
+            }
+
+            drawSnakeGlow(x, y) {
+                this.ctx.save();
+                this.ctx.shadowBlur = 0;
+                const radius = this.tileSize * 1.2;
+                const gradient = this.ctx.createRadialGradient(x + this.tileSize/2, y + this.tileSize/2, radius*0.2, x + this.tileSize/2, y + this.tileSize/2, radius);
+                gradient.addColorStop(0, 'rgba(255, 220, 100, 0.5)');
+                gradient.addColorStop(0.5, 'rgba(255, 180, 60, 0.2)');
+                gradient.addColorStop(1, 'rgba(255, 150, 50, 0)');
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(x - this.tileSize*0.3, y - this.tileSize*0.3, this.tileSize*1.6, this.tileSize*1.6);
+                this.ctx.restore();
+            }
+
+            drawFoodGlow(x, y) {
+                this.ctx.save();
+                this.ctx.shadowBlur = 0;
+                const radius = this.tileSize * 1.4;
+                const gradient = this.ctx.createRadialGradient(x + this.tileSize/2, y + this.tileSize/2, radius*0.15, x + this.tileSize/2, y + this.tileSize/2, radius);
+                gradient.addColorStop(0, 'rgba(255, 240, 150, 0.6)');
+                gradient.addColorStop(0.4, 'rgba(255, 200, 80, 0.3)');
+                gradient.addColorStop(1, 'rgba(255, 180, 50, 0)');
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(x - this.tileSize*0.4, y - this.tileSize*0.4, this.tileSize*1.8, this.tileSize*1.8);
+                this.ctx.restore();
+            }
+            
+            draw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                // 网格
+                this.ctx.strokeStyle = '#2a4a2a';
+                for(let i=0;i<=this.gridSize;i++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0,i*this.tileSize); this.ctx.lineTo(this.canvas.width,i*this.tileSize); this.ctx.stroke();
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(i*this.tileSize,0); this.ctx.lineTo(i*this.tileSize,this.canvas.height); this.ctx.stroke();
+                }
+                // 障碍物
+                if(this.obstaclesActive) {
+                    for(let obs of this.obstacles) {
+                        let x=obs.x*this.tileSize, y=obs.y*this.tileSize, w=obs.width*this.tileSize, h=obs.height*this.tileSize;
+                        let img = imageCache[obs.type] || imageCache.obstacle;
+                        this.ctx.drawImage(img, x, y, w, h);
+                    }
+                }
+                // 逃生洞
+                if(this.escapeHole) {
+                    let x=this.escapeHole.x*this.tileSize, y=this.escapeHole.y*this.tileSize;
+                    this.ctx.fillStyle='#88aaff'; this.ctx.fillRect(x+4,y+4,this.tileSize-8,this.tileSize-8);
+                    this.ctx.fillStyle='#fff'; this.ctx.font=`${this.tileSize-8}px monospace`;
+                    this.ctx.fillText('🚪', x+this.tileSize/2-8, y+this.tileSize/2+4);
+                    this.ctx.strokeStyle='#ffffaa'; this.ctx.strokeRect(x+2,y+2,this.tileSize-4,this.tileSize-4);
+                }
+                // 传送门
+                if(this.portal) {
+                    let x=this.portal.x*this.tileSize, y=this.portal.y*this.tileSize, w=2*this.tileSize, h=2*this.tileSize;
+                    this.ctx.fillStyle='#ff00ff'; this.ctx.fillRect(x,y,w,h);
+                    this.ctx.strokeStyle='#fff'; this.ctx.strokeRect(x,y,w,h);
+                    this.ctx.fillStyle='#fff'; this.ctx.font=`${this.tileSize}px monospace`;
+                    this.ctx.fillText('🌀', x+this.tileSize-8, y+this.tileSize+4);
+                }
+                // 敌人1 光圈+身体
+                if(this.enemyActive) {
+                    if(this.enemy) this.drawEnemyGlow(this.enemy.x*this.tileSize, this.enemy.y*this.tileSize);
+                    for(let seg of this.enemyBody) {
+                        this.drawEnemyGlow(seg.x*this.tileSize, seg.y*this.tileSize);
+                        let x=seg.x*this.tileSize, y=seg.y*this.tileSize;
+                        this.ctx.fillStyle='#8866aa'; this.ctx.fillRect(x+4,y+4,this.tileSize-8,this.tileSize-8);
+                        this.ctx.fillStyle='#aa88cc'; this.ctx.fillRect(x+6,y+6,this.tileSize-12,this.tileSize-12);
+                    }
+                    if(this.enemy) {
+                        let x=this.enemy.x*this.tileSize, y=this.enemy.y*this.tileSize;
+                        let size = this.tileSize*1.5, off = (this.tileSize-size)/2;
+                        this.ctx.drawImage(imageCache.enemyHead, x+off, y+off, size, size);
+                    }
+                }
+                // 敌人2 光圈+身体
+                if(this.enemy2Active) {
+                    if(this.enemy2) this.drawEnemyGlow(this.enemy2.x*this.tileSize, this.enemy2.y*this.tileSize);
+                    for(let seg of this.enemy2Body) {
+                        this.drawEnemyGlow(seg.x*this.tileSize, seg.y*this.tileSize);
+                        let x=seg.x*this.tileSize, y=seg.y*this.tileSize;
+                        this.ctx.fillStyle='#8866aa'; this.ctx.fillRect(x+4,y+4,this.tileSize-8,this.tileSize-8);
+                        this.ctx.fillStyle='#aa88cc'; this.ctx.fillRect(x+6,y+6,this.tileSize-12,this.tileSize-12);
+                    }
+                    if(this.enemy2) {
+                        let x=this.enemy2.x*this.tileSize, y=this.enemy2.y*this.tileSize;
+                        let size = this.tileSize*1.5, off = (this.tileSize-size)/2;
+                        this.ctx.drawImage(imageCache.enemyHead, x+off, y+off, size, size);
+                    }
+                }
+                // 老鼠敌人 光圈+身体
+                for(let rat of this.rats) {
+                    const ix = Math.floor(rat.x);
+                    const iy = Math.floor(rat.y);
+                    if (ix>=0 && ix<this.gridSize && iy>=0 && iy<this.gridSize) {
+                        this.drawEnemyGlow(ix*this.tileSize, iy*this.tileSize);
+                        let x=ix*this.tileSize, y=iy*this.tileSize;
+                        let size = this.tileSize*1.2, off = (this.tileSize-size)/2;
+                        this.ctx.drawImage(imageCache.rat, x+off, y+off, size, size);
+                    }
+                }
+                // 玩家蛇
+                for(let i=0;i<this.snake.length;i++) {
+                    let seg=this.snake[i], x=seg.x*this.tileSize, y=seg.y*this.tileSize;
+                    this.drawSnakeGlow(x, y);
+                    if(i===0) {
+                        let size=this.tileSize*1.5, off=(this.tileSize-size)/2;
+                        this.ctx.save();
+                        this.ctx.globalAlpha = 1;
+                        this.ctx.filter = 'brightness(2.2) contrast(1.5) opacity(1)';
+                        this.ctx.drawImage(imageCache.snakeHead, x+off, y+off, size, size);
+                        this.ctx.restore();
+                    } else {
+                        this.ctx.save();
+                        this.ctx.globalAlpha = 1;
+                        this.ctx.fillStyle=this.canBreakObstacle?'#ffdddd':'#ffddaa';
+                        this.ctx.fillRect(x+4,y+4,this.tileSize-8,this.tileSize-8);
+                        this.ctx.fillStyle=this.canBreakObstacle?'#ffffff':'#fffff0';
+                        this.ctx.fillRect(x+6,y+6,this.tileSize-12,this.tileSize-12);
+                        this.ctx.restore();
+                    }
+                }
+                // 普通食物（多个）
+                for(let f of this.foods) {
+                    this.drawFoodGlow(f.x*this.tileSize, f.y*this.tileSize);
+                    let fsize = this.tileSize*1.6, foff = (this.tileSize-fsize)/2;
+                    this.ctx.save();
+                    this.ctx.globalAlpha = 1;
+                    this.ctx.filter = 'brightness(2.2) contrast(1.5) opacity(1)';
+                    this.ctx.drawImage(imageCache.dorayaki, f.x*this.tileSize+foff, f.y*this.tileSize+foff, fsize, fsize);
+                    this.ctx.restore();
+                }
+                if(this.blueDorayaki) {
+                    let x=this.blueDorayaki.x*this.tileSize, y=this.blueDorayaki.y*this.tileSize;
+                    this.drawFoodGlow(x, y);
+                    this.ctx.save();
+                    this.ctx.globalAlpha = 1;
+                    this.ctx.fillStyle='#aaeeff'; this.ctx.fillRect(x+4,y+4,this.tileSize-8,this.tileSize-8);
+                    this.ctx.fillStyle='#ddf8ff'; this.ctx.fillRect(x+8,y+8,this.tileSize-16,this.tileSize-16);
+                    this.ctx.fillStyle='#fff'; this.ctx.font=`${this.tileSize-12}px monospace`;
+                    this.ctx.fillText('✨', x+this.tileSize/2-6, y+this.tileSize/2+4);
+                    this.ctx.restore();
+                }
+                if(this.redDorayaki) {
+                    let x=this.redDorayaki.x*this.tileSize, y=this.redDorayaki.y*this.tileSize;
+                    this.drawFoodGlow(x, y);
+                    this.ctx.save();
+                    this.ctx.globalAlpha = 1;
+                    this.ctx.fillStyle='#ffaaaa'; this.ctx.fillRect(x+4,y+4,this.tileSize-8,this.tileSize-8);
+                    this.ctx.fillStyle='#ffdddd'; this.ctx.fillRect(x+8,y+8,this.tileSize-16,this.tileSize-16);
+                    this.ctx.fillStyle='#fff'; this.ctx.font=`${this.tileSize-12}px monospace`;
+                    this.ctx.fillText('⚡', x+this.tileSize/2-6, y+this.tileSize/2+4);
+                    this.ctx.restore();
+                }
+                if(this.enemyActive && this.extraFood) {
+                    let x=this.extraFood.x*this.tileSize, y=this.extraFood.y*this.tileSize;
+                    this.drawFoodGlow(x, y);
+                    this.ctx.save();
+                    this.ctx.globalAlpha = 1;
+                    this.ctx.fillStyle='#eebb88'; this.ctx.fillRect(x+4,y+4,this.tileSize-8,this.tileSize-8);
+                    this.ctx.fillStyle='#ffddaa'; this.ctx.fillRect(x+8,y+8,this.tileSize-16,this.tileSize-16);
+                    this.ctx.restore();
+                }
+                
+                // 黑暗视野（第二关及第三关）透明度80%
+                if(this.darknessEnabled && this.gameRunning) {
+                    const head = this.snake[0];
+                    const centerX = head.x * this.tileSize + this.tileSize/2;
+                    const centerY = head.y * this.tileSize + this.tileSize/2;
+                    const radius = this.lightRadius * this.tileSize;
+                    const gradient = this.ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+                    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+                    gradient.addColorStop(0.4, 'rgba(0, 0, 0, 0.2)');
+                    gradient.addColorStop(0.7, 'rgba(0, 0, 0, 0.5)');
+                    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.8)');
+                    this.ctx.fillStyle = gradient;
+                    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                }
+            }
+            
+            gameLoop(timestamp) {
+                if(!this.gameRunning) return;
+                if(!this.lastFrameTime) this.lastFrameTime = timestamp;
+                if(timestamp - this.lastFrameTime >= this.speed) {
+                    this.update();
+                    this.draw();
+                    this.lastFrameTime = timestamp;
+                }
+                this.animationId = requestAnimationFrame(this.gameLoop.bind(this));
+            }
+            
+            initGame() {
+                const settings = this.difficultySettings[this.currentDifficulty];
+                this.snake = [{x:20,y:20}];
+                this.direction = {x:0,y:0};
+                this.nextDirection = {x:0,y:0};
+                this.score = 0;
+                this.speed = settings.baseSpeed;
+                this.initialSpeed = this.speed;
+                this.gameRunning = true;
+                this.enemy = null; this.enemyBody = []; this.enemyActive = false; this.enemyScore=0; this.enemyMoveCounter=0;
+                this.enemy2 = null; this.enemy2Body = []; this.enemy2Active = false; this.enemy2Score=0; this.enemy2MoveCounter=0;
+                this.rats = [];
+                this.extraFood = null;
+                this.obstacles = []; this.obstaclesActive = false;
+                this.blueDorayaki = null; this.redDorayaki = null;
+                this.escapeHole = null; this.portal = null;
+                this.isInvincible = false; this.canBreakObstacle = false;
+                this.lastFrameTime = 0;
+                this.baseEnemySpeed = settings.enemyBaseSpeed;
+                this.currentEnemySpeed = this.baseEnemySpeed;
+                this.currentLevel = 1;
+                this.darknessEnabled = false;
+                this.lightRadius = 3.5;
+                if(this.invincibleTimer) clearTimeout(this.invincibleTimer);
+                if(this.breakTimer) clearTimeout(this.breakTimer);
+                if(this.enemySlowTimer) clearTimeout(this.enemySlowTimer);
+                document.getElementById('score').querySelector('span').textContent = '0';
+                document.getElementById('enemy-length').querySelector('span').textContent = '0';
+                document.getElementById('game-over').style.display = 'none';
+                document.getElementById('overlay').style.display = 'none';
+                this.updateBuffDisplay();
+                this.updateEnemyHint();
+                this.generateFoods(); // 生成初始食物
+                this.draw();
+                if(this.animationId) cancelAnimationFrame(this.animationId);
+                this.animationId = requestAnimationFrame(this.gameLoop.bind(this));
+                this.changeBackgroundMusic(this.currentLevel);
+            }
+            
+            gameOver() {
+                this.gameRunning = false;
+                this.allowControl = false;
+                if(this.animationId) cancelAnimationFrame(this.animationId);
+                this.stopBackgroundMusic();
+                this.playGameOverSound();
+                if(this.score > this.highScore) {
+                    this.highScore = this.score;
+                    localStorage.setItem('dorayaki_highscore_pixel', this.highScore);
+                    document.getElementById('high-score').querySelector('span').textContent = this.highScore;
+                }
+                const div = document.getElementById('game-over');
+                div.classList.remove('victory'); div.classList.add('defeat');
+                document.getElementById('game-over-title').textContent = '游戏结束';
+                document.getElementById('doraemon-face').innerHTML = '😢';
+                document.getElementById('final-score').textContent = this.score;
+                document.getElementById('final-high').textContent = this.highScore;
+                document.getElementById('final-enemy-length').textContent = this.enemyBody.length;
+                document.getElementById('overlay').style.display = 'block';
+                div.style.display = 'block';
+            }
+            gameWin(isEscape) {
+                this.gameRunning = false;
+                this.allowControl = false;
+                if(this.animationId) cancelAnimationFrame(this.animationId);
+                this.stopBackgroundMusic();
+                this.playVictorySound();
+                if(this.score > this.highScore) {
+                    this.highScore = this.score;
+                    localStorage.setItem('dorayaki_highscore_pixel', this.highScore);
+                    document.getElementById('high-score').querySelector('span').textContent = this.highScore;
+                }
+                const div = document.getElementById('game-over');
+                div.classList.remove('defeat'); div.classList.add('victory');
+                document.getElementById('game-over-title').textContent = isEscape ? '✨ 逃脱成功 ✨' : '🎉 胜利！ 🎉';
+                document.getElementById('doraemon-face').innerHTML = '😊';
+                document.getElementById('final-score').textContent = this.score;
+                document.getElementById('final-high').textContent = this.highScore;
+                document.getElementById('final-enemy-length').textContent = this.enemyBody.length;
+                document.getElementById('overlay').style.display = 'block';
+                div.style.display = 'block';
+            }
+            
+            resetGame() {
+                this.initGame();
+                this.allowControl = true;
+            }
+            
+            startWithCountdown() {
+                if(this.gameRunning) return;
+                this.initBackgroundMusic();
+                document.getElementById('start-btn').style.display = 'none';
+                document.getElementById('exit-btn').style.display = 'inline-block';
+                const cdDiv = document.getElementById('countdown');
+                cdDiv.style.display = 'block';
+                let count = 3;
+                cdDiv.textContent = count;
+                this.allowControl = false;
+                const timer = setInterval(() => {
+                    count--;
+                    if(count > 0) { cdDiv.textContent = count; this.playBeep(440,0.08,0.1); }
+                    else {
+                        clearInterval(timer);
+                        cdDiv.textContent = '开始！';
+                        this.playBeep(660,0.15,0.15);
+                        setTimeout(() => {
+                            cdDiv.style.display = 'none';
+                            this.allowControl = true;
+                            this.playBackgroundMusic();
+                            this.initGame();
+                        }, 400);
+                    }
+                }, 1000);
+            }
+            
+            handleDirection(key) {
+                if(!this.gameRunning || !this.allowControl) return;
+                switch(key) {
+                    case 'up': if(this.direction.y !== 1) this.nextDirection = {x:0,y:-1}; break;
+                    case 'down': if(this.direction.y !== -1) this.nextDirection = {x:0,y:1}; break;
+                    case 'left': if(this.direction.x !== 1) this.nextDirection = {x:-1,y:0}; break;
+                    case 'right': if(this.direction.x !== -1) this.nextDirection = {x:1,y:0}; break;
+                }
+            }
+            
+            // 开发者模式UI
+            initDevMode() {
+                const devBtn = document.getElementById('dev-btn');
+                const modal = document.getElementById('dev-modal');
+                const closeBtn = modal.querySelector('.close-dev');
+                const tabs = modal.querySelectorAll('.dev-tab');
+                const contents = modal.querySelectorAll('.dev-content');
+                const jumpBtns = modal.querySelectorAll('.dev-jump-btn');
+                
+                devBtn.addEventListener('click', () => {
+                    modal.classList.add('active');
+                });
+                closeBtn.addEventListener('click', () => {
+                    modal.classList.remove('active');
+                });
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        const tabId = tab.dataset.tab;
+                        tabs.forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        contents.forEach(c => c.classList.remove('active'));
+                        document.getElementById(`dev-content-${tabId}`).classList.add('active');
+                    });
+                });
+                jumpBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const level = parseInt(btn.dataset.level);
+                        this.jumpToLevel(level);
+                        modal.classList.remove('active');
+                    });
+                });
+                tabs[0].classList.add('active');
+                document.getElementById('dev-content-1').classList.add('active');
+            }
+            
+            bindEvents() {
+                document.addEventListener('keydown', (e) => {
+                    const map = {'ArrowUp':'up','ArrowDown':'down','ArrowLeft':'left','ArrowRight':'right','w':'up','W':'up','s':'down','S':'down','a':'left','A':'left','d':'right','D':'right'};
+                    if(map[e.key]) { e.preventDefault(); this.handleDirection(map[e.key]); }
+                });
+                document.querySelectorAll('.dir-btn').forEach(btn => {
+                    btn.addEventListener('click', () => this.handleDirection(btn.dataset.dir));
+                    btn.addEventListener('touchstart', (e) => { e.preventDefault(); this.handleDirection(btn.dataset.dir); });
+                });
+                document.getElementById('difficulty-selector').addEventListener('change', (e) => {
+                    this.currentDifficulty = e.target.value;
+                    this.updateDifficultyUI();
+                    if(!this.gameRunning) this.initGame();
+                });
+                document.getElementById('volume-btn').addEventListener('click', () => {
+                    this.audioEnabled = !this.audioEnabled;
+                    document.getElementById('volume-btn').textContent = this.audioEnabled ? '🔊' : '🔇';
+                    if(!this.audioEnabled) this.stopBackgroundMusic();
+                    else if(this.gameRunning) this.playBackgroundMusic();
+                });
+                document.getElementById('start-btn').addEventListener('click', () => this.startWithCountdown());
+                document.getElementById('exit-btn').addEventListener('click', () => this.gameOver());
+                document.getElementById('restart-btn').addEventListener('click', () => { this.resetGame(); document.getElementById('overlay').style.display='none'; document.getElementById('game-over').style.display='none'; });
+                document.getElementById('close-overlay-btn').addEventListener('click', () => { document.getElementById('overlay').style.display='none'; document.getElementById('game-over').style.display='none'; this.resetGame(); });
+                document.body.addEventListener('click', () => { if(!this.audioContext) this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); }, { once: true });
+            }
+        }
+        
+        imagesLoaded.then(() => {
+            window.game = new DorayakiGame();
+        });
+    </script>
+</body>
+</html>
